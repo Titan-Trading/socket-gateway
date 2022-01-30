@@ -64,8 +64,8 @@ services:
   #   file: ./nginx/certs/dhparam.pem
 
 volumes:
-  certbot-etc:
-  certbot-var:
+  # certbot-etc:
+  # certbot-var:
   app:
     driver: local
     driver_opts:
