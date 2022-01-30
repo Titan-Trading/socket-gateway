@@ -1,108 +1,88 @@
-import db from '../../models/index';
-import ServiceFactory from '../../models/service';
-import ServiceInstanceFactory from '../../models/serviceinstance';
-import EndpointFactory from '../../models/endpoint';
 
-const Service = ServiceFactory(db.sequelize);
-const ServiceInstance = ServiceInstanceFactory(db.sequelize);
-const Endpoint = EndpointFactory(db.sequelize);
 
 export default class ServiceRepository
 {
+    services = {};
+
     constructor() {
 
     }
 
-    async getAll()
+    getAll()
     {
-        const services = await Service.findAll({
-            subQuery: false,
-            include: { all: true },
-        });
-
-        return services;
+        return this.services;
     }
 
-    async addInstance(serviceId, serviceInstance)
+    getByRequest(method, url)
     {
-        if(!serviceId || !serviceInstance) {
-            return false;
-        }
-        
-        const foundServices = await Service.findAll({
-            where: {
-                name: serviceId
-            }
-        });
-        
-        let service = null;
-        if(!foundServices.length) {
-            service = await Service.create({
-                name: serviceId,
-                supportedCommunicationChannels: serviceInstance.supportedCommunicationChannels,
-                hostname: serviceInstance.hostname,
-                port: serviceInstance.port
-            });
-        }
-        else {
-            service = foundServices[0];
-        }
+        for(let sI in this.services) {
+            const service = this.services[sI];
 
-        const foundInstances = await ServiceInstance.count({
-            where: {
-                serviceId: service.id,
-                serviceName: service.name,
-                instanceId: serviceInstance.instanceId
-            }
-        });
-        
-        if(foundInstances) {
-            return false;
-        }
+            for(let eI in service.endpoints) {
+                const endpoint = service.endpoints[eI];
+                const endpointPattern = endpoint.url;
 
-        await ServiceInstance.create({
-            serviceId: service.id,
-            serviceName: service.name,
-            instanceId: serviceInstance.instanceId,
-            status: serviceInstance.status
-        });
-
-        if(!serviceInstance.endpoints) {
-            return true;
-        }
-
-        for(let iE in serviceInstance.endpoints) {
-            const ep = serviceInstance.endpoints[iE];
-
-            const foundEndpoints = await Endpoint.count({
-                where: {
-                    serviceId: service.id,
-                    url: ep.url,
-                    method: ep.method
+                if(method !== endpoint.method) {
+                    continue;
                 }
-            });
 
-            if(!foundEndpoints) {
-                await Endpoint.create({
-                    serviceId: service.id,
-                    url: ep.url,
-                    method: ep.method
-                });
+                const regexp = new RegExp(endpointPattern);
+
+                if(url !== endpoint.url && !regexp.exec(url)) {
+                    continue;
+                }
+
+                return service;
             }
         }
+
+        return null;
+    }
+
+    setAll(services)
+    {
+        for(let sI in services) {
+            const service = services[sI];
+
+            this.services[service.id] = service;
+        }
+    }
+
+    update(id, name, supportedCommunicationChannels, hostname, port, endpoints, instances)
+    {
+        if(typeof this.services[id] === 'undefined') {
+            this.services[id] = {};
+        }
+
+        this.services[id] = {
+            id,
+            name,
+            supportedCommunicationChannels,
+            hostname,
+            port,
+            endpoints,
+            instances
+        };
+
+        // console.log('add or update service endpoints', this.services[id]);
 
         return true;
     }
 
-    async updateInstance(instanceId, serviceInstance)
+    remove(id)
     {
-        await ServiceInstance.update({
-            status: serviceInstance.status
-        }, {
-            where: {
-                instance_id: instanceId
+        let newServices = {};
+        for(let sI in this.services) {
+            if(this.services[sI].id == id) {
+                continue;
             }
-        });
+
+            newServices[sI] = this.services[sI];
+        }
+
+        this.services = newServices;
+
+        // console.log('endpoints removed: ', this.services);
 
         return true;
     }

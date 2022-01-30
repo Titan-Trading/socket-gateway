@@ -9,6 +9,7 @@ export default class MessageBus
     topics = [];
     consumer = null;
     producer = null;
+    producerIsConnected = false;
     pubsub = null;
 
     constructor(clientId, consumerGroupId, brokers = [])
@@ -34,12 +35,16 @@ export default class MessageBus
         });
 
         // setup kafka producer
-        this.producer = this.kafka.producer({});
+        this.producer = this.kafka.producer({
+
+        });
 
         // connect the consumer
         await this.consumer.connect();
         // connect the producer
         await this.producer.connect();
+
+        this.producerIsConnected = true;
 
         // subscribe to all topics
         const topicsConfig = process.env.TOPICS.split(',');
@@ -55,15 +60,20 @@ export default class MessageBus
         // setup a callback for messages that are consumed
         await this.consumer.run({
             eachMessage: async ({ topic, partition, message }) => {
-                const messageKey = message.key ? Buffer.from(message.key).toString() : null;
-                const messageData = message.value ? JSON.parse(Buffer.from(message.value).toString()) : null;
+                try {
+                    const messageKey = message.key ? Buffer.from(message.key).toString() : null;
+                    const messageData = message.value ? JSON.parse(Buffer.from(message.value).toString()) : null;
 
-                // console.log('Channel: ' + topic);
-                // console.log('Partition: ' + partition);
-                // console.log('Message ID: ' + messageKey);
-                // console.log('Message body: ', messageData);
+                    // console.log('Channel: ' + topic);
+                    // console.log('Partition: ' + partition);
+                    // console.log('Message ID: ' + messageKey);
+                    // console.log('Message body: ', messageData);
 
-                context.pubsub.emit(topic, messageData);
+                    context.pubsub.emit(topic, messageData);
+                }
+                catch(ex) {
+                    console.error(ex);
+                }
             }
         });
     }
@@ -104,12 +114,14 @@ export default class MessageBus
     onMessage(topic, callback)
     {
         this.pubsub.on(topic, callback);
-
-        // console.log('added callback (' + topic + ')');
     }
 
     async sendMessage(topic, data)
     {
+        if(!this.producerIsConnected) {
+            return false;
+        }
+
         data.topic = topic;
         data.messageId = uuidv4();
 
@@ -122,8 +134,6 @@ export default class MessageBus
                 }
             ]
         });
-
-        // console.log('message sent (' + topic + ')');
     }
 
     async sendCommand(channel, commandId, commandParameters)
@@ -163,5 +173,7 @@ export default class MessageBus
     {
         await this.producer.disconnect();
         await this.consumer.disconnect();
+
+        this.producerIsConnected = false;
     }
 }
