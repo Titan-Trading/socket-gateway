@@ -1,0 +1,14 @@
+authtoken: 7vsDup2w7YhTgMZZ4UyHG_4Z3iPggU6bhFZz6bH65Br
+region: us
+
+tunnels:
+    socket:
+        proto: http
+        addr: 8080
+        subdomain: wss-simpletrader
+        bind_tls: false
+    socket-ssl:
+        proto: http
+        addr: 8443
+        subdomain: wws-simpletrader
+        bind_tls: true

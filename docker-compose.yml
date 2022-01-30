@@ -1,92 +1,71 @@
-version: '2'
+version: '3.5'
 services:
-  service-db:
-    image: mysql:5.7.22
-    hostname: service-db
-    container_name: service-db
-    restart: unless-stopped
-    tty: true
-    ports:
-      - "3307:3307"
-    environment:
-      MYSQL_TCP_PORT: 3307
-      MYSQL_DATABASE: st_services
-      MYSQL_ROOT_PASSWORD: password
-      SERVICE_TAGS: dev
-      SERVICE_NAME: mysql
-    volumes:
-      - dbdata:/var/lib/mysql
-      - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
-  registry-1:
+  # certbot:
+  #   image: certbot/certbot
+  #   container_name: certbot
+  #   volumes:
+  #     - certbot-etc:/etc/letsencrypt
+  #     - certbot-var:/var/lib/letsencrypt
+  #     - app:/var/www/html
+  #   command: certonly --standalone --preferred-challenges http -d wss.simpletrader.com
+  socket-gateway-1:
     build:
       context: ./
       dockerfile: Dockerfile
-    hostname: registry-1
-    container_name: registry-1
+    hostname: socket-gateway-1
+    container_name: socket-gateway-1
     restart: unless-stopped
-    depends_on:
-      - service-db
-      - registry-migration
     tty: true
     env_file:
       - .one.env
     volumes:
-      - app:/var/www
+      - app:/var/www/html
     command:
       - yarn
       - start-dev
-  registry-2:
+  socket-gateway-2:
     build:
       context: ./
       dockerfile: Dockerfile
-    hostname: registry-2
-    container_name: registry-2
+    hostname: socket-gateway-2
+    container_name: socket-gateway-2
     restart: unless-stopped
-    depends_on:
-      - service-db
-      - registry-migration
     tty: true
     env_file:
       - .two.env
     volumes:
-      - app:/var/www
+      - app:/var/www/html
     command:
       - yarn
       - start-dev
-  registry-migration:
-    build:
-      context: ./
-      dockerfile: Dockerfile
-    hostname: registry-migration
-    container_name: registry-migration
-    depends_on:
-      - service-db
-    tty: true
-    env_file:
-      - .one.env
-    volumes:
-      - app:/var/www
-    command:
-      - yarn
-      - migrate
-  registry-proxy:
+  socket-gateway-proxy:
     image: nginx:alpine
-    container_name: registry-proxy
+    container_name: socket-gateway-proxy
     restart: unless-stopped
     depends_on:
-      - registry-1
-      - registry-2
+      - socket-gateway-1
+      - socket-gateway-2
+    ports:
+      - 8080:8080
+      - 8443:8443
     tty: true
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/certs/:/etc/nginx/ssl
+      # - certbot-etc:/etc/letsencrypt
+      # - certbot-var:/var/lib/letsencrypt
+
+# secrets:
+  # ssl_cert:
+  #   file: ./nginx/certs/fullchain.pem
+  # ssl_key:
+  #   file: ./nginx/certs/privkey.pem
+  # ssl_dhparam:
+  #   file: ./nginx/certs/dhparam.pem
 
 volumes:
-  dbdata:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ./data/mysql
+  certbot-etc:
+  certbot-var:
   app:
     driver: local
     driver_opts:

@@ -1,45 +1,54 @@
-const express = require('express');
+import express from 'express';
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import * as http from 'http';
 
 export default class HttpServer
 {
+    io = null;
+    http = null;
     app = null;
-    _onRequestCallbacks = {};
+    _onRequest = null;
 
     constructor()
     {
         this.app = express();
+        this.http = http.createServer(this.app);
+
+        this.app.use(cors());
+        this.app.use(bodyParser.json());
+    }
+
+    getServer()
+    {
+        return this.http;
     }
 
     start(port)
     {
         // start http server on a given port
-        this.app.listen(port);
+        this.http.listen(port);
+
+        this.app.get('/', (req, res) => {
+            console.log('home route');
+            return res.status(200).send('OK');
+        });
 
         // setup global request listener
         this.app.use((req, res) => {
-            const requestHash = req.method + '-' + req.url;
-
-            if(typeof this._onRequestCallbacks[requestHash] !== 'function') {
-                return res.status(404).send('Not found');
+            if(typeof this._onRequest == 'function') {
+                this._onRequest(req, res);
             }
-
-            this._onRequestCallbacks[requestHash](req, res);
         });
     }
 
     stop()
     {
-
+        this.http.close();
     }
 
-    on(method, endpoint, callback)
+    onRequest(callback)
     {
-        if(typeof this._onRequestCallbacks[method + '-' + endpoint] === 'function') {
-            return false;
-        }
-
-        this._onRequestCallbacks[method + '-' + endpoint] = callback;
-
-        return true;
+        this._onRequest = callback;
     }
 }

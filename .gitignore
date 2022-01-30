@@ -3,3 +3,4 @@ dist
 data/mysql/*
 .env
 .*.env
+commands.txt
