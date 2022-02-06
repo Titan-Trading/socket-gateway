@@ -1,6 +1,6 @@
 FROM node:16
 
-WORKDIR /var/www
+WORKDIR /var/www/html
 
 COPY ./package*.json ./
 COPY ./tsconfig.json ./

@@ -15,7 +15,12 @@ export default class HttpServer
         this.app = express();
         this.http = http.createServer(this.app);
 
-        this.app.use(cors());
+        this.app.use(cors({
+            origin: "https://simpletrader.local",
+            methods: ['GET','POST'],
+            allowedHeaders: '*',
+            exposedHeaders: ['Content-Type', 'Origin']
+        }));
         this.app.use(bodyParser.json());
     }
 
