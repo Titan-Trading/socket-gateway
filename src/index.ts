@@ -1,6 +1,3 @@
-
-
-
 // get route registry data 
 
 // set up middleware for converting rest requests to message sagas
@@ -32,67 +29,21 @@ const serviceId = process.env.SERVICE_ID;
 const instanceId = process.env.INSTANCE_ID;
 const serviceRegistryTopic = 'service-registry';
 
-// when a micro-service creates a response message
-function servicesOutboundCallback(data) {
-    try {
-        if(data.messageType != 'RESPONSE') {
-            return;
-        }
-
-        // get pending request by generated request id
-        // const pendingRequest = pendingRequests.get(data.requestId);
-        // if(!pendingRequest) {
-        //     return;
-        // }
-
-        // clear timeout
-        // clearTimeout(pendingRequest.requestTimeout);
-
-        // // get response object from pending request
-        // const res = pendingRequest.responseCallback;
-
-        // // remove pending request
-        // pendingRequests.remove(data.requestId);
-
-        // send the response
-        // return res.status(data.responseCode || 200).json(data.response || {});
-    }
-    catch(ex)
-    {
-        console.log(ex);
-    }
-}
-
-// when service registry is has responses
+// when service registry has responses
 messageBus.onMessage(serviceRegistryTopic, async (data) => {
-
     // service came online
     if(data.messageType == 'EVENT' && data.eventId == 'SERVICE_ONLINE') {
-        
         console.log('service online: ' + data.serviceId + ' (' + data.instanceId + ')');
 
         // update route mapping repository
-        const updated = services.update(data.serviceId, data.serviceId, data.supportedCommunicationChannels, data.hostname, data.port, data.endpoints, data.instances);
-        if(updated && data.serviceId != serviceId) {
-            if(!data.supportedCommunicationChannels || !data.supportedCommunicationChannels.includes('bus')) {
-                return;
-            }
-
-            await messageBus.subscribeToTopic(data.serviceId);
-
-            await messageBus.onMessage(data.serviceId, servicesOutboundCallback);
-        }
+        services.update(data.serviceId, data.serviceId, data.supportedCommunicationChannels, data.hostname, data.port, data.endpoints, data.commands, data.instances);
     }
     // service went offline
     else if(data.messageType == 'EVENT' && data.eventId == 'SERVICE_OFFLINE') {
-
         console.log('service offline: ' + data.serviceId + ' (' + data.instanceId + ')');
 
         // update route mapping repository
-        const removed = services.remove(data.serviceId);
-        if(removed) {
-            await messageBus.unsubscribeFromTopic(data.serviceId);
-        }
+        services.remove(data.serviceId);
     }
     // entire service list
     else if(data.messageType == 'RESPONSE' && data.queryId == 'SERVICE_LIST') {
@@ -103,23 +54,37 @@ messageBus.onMessage(serviceRegistryTopic, async (data) => {
         for(let sI in data.response) {
             const service = data.response[sI];
     
-            const updated = services.update(service.id, service.name, service.supportedCommunicationChannels, service.hostname, service.port, service.endpoints, service.instances);
-            if(updated && service.name != serviceId) {
-                if(!service.supportedCommunicationChannels || !service.supportedCommunicationChannels.includes('bus')) {
-                    return;
-                }
-                
-                await messageBus.subscribeToTopic(service.name);
-    
-                await messageBus.onMessage(service.name, servicesOutboundCallback);
-            }
+            services.update(service.id, service.name, service.supportedCommunicationChannels, service.hostname, service.port, service.endpoints, service.commands, service.instances);
         }
     }
 });
 
+// when other services have socket responses
+messageBus.onMessage(serviceId, async (data) => {
+    const exampleMessageData = {
+        
+    };
+
+    const exampleUserBalanceUpdate = {
+        meta: {
+            category: 'USER', // EXCHANGE, USER, BOT_SESSION, etc
+            type: 'BALANCE_UPDATE'
+        },
+        data: {
+            balance: {
+                USD: 0.00,
+                BTC: 0.000000000
+            }
+        }
+    }
+
+    // find out which audience the response should be sent to (a room/a namespace/a list of clients/broadcast to all clients)
+
+    // send the response to the client(s)
+});
+
 // connect to message bus
 messageBus.connect().then(async () => {
-
     console.log('connected to message bus');
 
     // let the service registry know that a new micro-service is online
@@ -129,87 +94,68 @@ messageBus.connect().then(async () => {
         supportedCommunicationChannels: ['bus'],
         hostname: 'socket-gateway-proxy',
         port: 8080,
-        endpoints: []
+        endpoints: [],
+        commands: []
     });
 
     // setup mapping endpoints to inbound event channel repository
     await messageBus.sendQuery(serviceRegistryTopic, 'SERVICE_LIST', {});
 });
 
+// when client connects to the web socket server
 webSocketServer.onConnect((socket) => {
     console.log(socket.id);
+
+    // add to repository of connected clients
 });
 
+// when a client sends a message
 webSocketServer.onMessage((socket, message) => {
     console.log(socket.id);
     console.log(message);
-});
 
-// when a request is sent to the HTTP server
-/*restServer.onRequest(async (req, res) => {
-    const method = req.method.toLowerCase();
-    const url = req.path;
+    const messageCategory = message.meta.category;
+    const messageType = message.meta.type;
 
-    // string to identify a route
-    const routeId = method + '-' + url;
+    // find service to route the incoming message using category and message type
 
-    // string to identify the current request
-    const requestId = routeId + '.' + uuidv4();
-
-    console.log(method + ' ' + url);
-
-    return res.status(200).send('OK');
+    // route incoming message to service using preferred method of communication (rest or message bus)
 
     // check for a mapping in mapping repository
-    const service = services.getByRequest(method, url);
+    const service = services.getByMessage(messageCategory, messageType);
     if(!service) {
-        return res.status(404).send('Not found');
+        // return res.status(404).send('Not found');
+
+        // send response back to the client (service not found or command not supported)
     }
 
     console.log('Service found:', service.name);
 
-    // check if request should be authenticated based on mapping schema
-    // authenticate request using given pattern
-
-    // start the timeout response timer (if no service responds)
-    let requestTimeout = setTimeout(() => {
-        return res.status(504).send('Timed out');
-    }, 1000 * 10); // 10 seconds
-
     // send http request or message bus message
     if(service.supportedCommunicationChannels.includes('bus')) {
-        // add to pending requests repository
-        const pendingRequestAdded = pendingRequests.add(requestId, {
-            request: req,
-            requestTimeout,
-            responseCallback: res
-        });
-
-        if(pendingRequestAdded) {
-            messageBus.sendRequest(service.name, routeId, requestId, {
-                gatewayId: instanceId,
-                method,
-                endpoint: url,
-                data: req.body
-            });
-        }
+        // messageBus.sendRequest(service.name, routeId, requestId, {
+        //     gatewayId: instanceId,
+        //     method,
+        //     endpoint: url,
+        //     data: req.body
+        // });
     }
     else if(service.supportedCommunicationChannels.includes('rest')) {
-        const requestHeaders = req.headers;
-        const requestBody = req.body ? req.body : null;
+        // const requestHeaders = req.headers;
+        // const requestBody = req.body ? req.body : null;
 
-        const proxiedRes = await restProxy.sendRequest(method, service.hostname + ':' + service.port + url, requestBody, requestHeaders);
+        // const proxiedRes = await restProxy.sendRequest(method, service.hostname + ':' + service.port + url, requestBody, requestHeaders);
 
-        // clear the timeout for the current incoming request
-        clearTimeout(requestTimeout);
+        // // clear the timeout for the current incoming request
+        // clearTimeout(requestTimeout);
 
-        if(!proxiedRes) {
-            return res.status(404).send('Not found');
-        }
+        // if(!proxiedRes) {
+        //     return res.status(404).send('Not found');
+        // }
 
-        return res.status(proxiedRes.statusCode).json(proxiedRes.body);
+        // return res.status(proxiedRes.statusCode).json(proxiedRes.body);
     }
-});*/
+});
 
 // start web socket service (piggy-backs http server)
 webSocketServer.start();
