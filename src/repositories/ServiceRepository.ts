@@ -13,22 +13,20 @@ export default class ServiceRepository
         return this.services;
     }
 
-    getByRequest(method, url)
+    getByMessage(category, type)
     {
         for(let sI in this.services) {
             const service = this.services[sI];
 
-            for(let eI in service.endpoints) {
-                const endpoint = service.endpoints[eI];
-                const endpointPattern = endpoint.url;
+            for(let cI in service.commands) {
+                const command = service.commands[cI];
+                const commandCategory = command.category;
+                const commandType = command.type;
 
-                if(method !== endpoint.method) {
+                if(category !== commandCategory) {
                     continue;
                 }
-
-                const regexp = new RegExp(endpointPattern);
-
-                if(url !== endpoint.url && !regexp.exec(url)) {
+                if(type !== commandType) {
                     continue;
                 }
 
@@ -48,7 +46,7 @@ export default class ServiceRepository
         }
     }
 
-    update(id, name, supportedCommunicationChannels, hostname, port, endpoints, instances)
+    update(id, name, supportedCommunicationChannels, hostname, port, endpoints, commands, instances)
     {
         if(typeof this.services[id] === 'undefined') {
             this.services[id] = {};
@@ -61,6 +59,7 @@ export default class ServiceRepository
             hostname,
             port,
             endpoints,
+            commands,
             instances
         };
 
