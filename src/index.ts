@@ -59,11 +59,13 @@ messageBus.onMessage(serviceRegistryTopic, async (data) => {
     }
 });
 
-// when other services have socket responses
-messageBus.onMessage(serviceId, async (data) => {
-    const exampleMessageData = {
-        
-    };
+// when other services have socket responses (outbound)
+messageBus.onMessage(serviceId, async (updateData) => {
+
+    if(updateData) {
+
+    }
+
 
     const exampleUserBalanceUpdate = {
         meta: {
@@ -81,6 +83,7 @@ messageBus.onMessage(serviceId, async (data) => {
     // find out which audience the response should be sent to (a room/a namespace/a list of clients/broadcast to all clients)
 
     // send the response to the client(s)
+    // webSocketServer.send();
 });
 
 // connect to message bus
@@ -109,7 +112,7 @@ webSocketServer.onConnect((socket) => {
     // add to repository of connected clients
 });
 
-// when a client sends a message
+// when a client sends a message (inbound)
 webSocketServer.onMessage((socket, message) => {
     console.log(socket.id);
     console.log(message);
