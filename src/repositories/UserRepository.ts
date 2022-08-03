@@ -16,7 +16,7 @@ export default class UserRepository
     getBySocketId(socketId)
     {
         if(typeof this.users[socketId] === 'undefined') {
-            return null
+            return null;
         }
 
         return this.users[socketId];
