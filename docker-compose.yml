@@ -14,7 +14,7 @@ services:
       dockerfile: Dockerfile
     hostname: socket-gateway-1
     container_name: socket-gateway-1
-    restart: unless-stopped
+    # restart: unless-stopped
     tty: true
     env_file:
       - .one.env
@@ -29,7 +29,7 @@ services:
       dockerfile: Dockerfile
     hostname: socket-gateway-2
     container_name: socket-gateway-2
-    restart: unless-stopped
+    # restart: unless-stopped
     tty: true
     env_file:
       - .two.env

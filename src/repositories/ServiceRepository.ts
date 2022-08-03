@@ -23,10 +23,7 @@ export default class ServiceRepository
                 const commandCategory = command.category;
                 const commandType = command.type;
 
-                if(category !== commandCategory) {
-                    continue;
-                }
-                if(type !== commandType) {
+                if(category !== commandCategory || type !== commandType) {
                     continue;
                 }
 
