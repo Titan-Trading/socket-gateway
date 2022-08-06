@@ -1,5 +1,5 @@
 import {Server} from 'socket.io';
-// import {Server as ServerEngine} from 'eiows';
+import {Server as ServerEngine} from 'eiows';
 import JsonParser from 'socket.io-json-parser';
 import http from 'http';
 import fs from 'fs';
@@ -54,7 +54,7 @@ export default class WebSocketServer
                 allowedHeaders: '*',
                 exposedHeaders: ['Content-Type', 'Origin']
             },
-            // wsEngine: ServerEngine,
+            wsEngine: ServerEngine,
             parser: JsonParser
         });
 
