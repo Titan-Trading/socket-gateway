@@ -1,6 +1,8 @@
 import {Server} from 'socket.io';
 import {Server as ServerEngine} from 'eiows';
 import JsonParser from 'socket.io-json-parser';
+import {createAdapter} from "@socket.io/redis-adapter";
+import {createClient} from "redis";
 import http from 'http';
 import fs from 'fs';
 import jwt from 'jsonwebtoken';
@@ -55,7 +57,20 @@ export default class WebSocketServer
                 exposedHeaders: ['Content-Type', 'Origin']
             },
             wsEngine: ServerEngine,
-            parser: JsonParser
+            parser: JsonParser,
+            perMessageDeflate: {
+                threshold: 32768
+            }
+        });
+
+        const pubClient = createClient({ 
+            url: process.env.REDIS_HOST,
+            password: process.env.REDIS_PASSWORD
+        });
+        const subClient = pubClient.duplicate();
+
+        Promise.all([pubClient.connect(), subClient.connect()]).then(() => {
+            context.server.adapter(createAdapter(pubClient, subClient));
         });
 
         // authentication middleware

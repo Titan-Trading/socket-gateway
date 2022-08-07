@@ -38,9 +38,4 @@ export default class HttpServer
     {
         this._server.close();
     }
-
-    // onRequest(callback)
-    // {
-    //     this._onRequest = callback;
-    // }
 }

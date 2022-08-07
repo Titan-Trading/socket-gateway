@@ -73,6 +73,9 @@ export default class System
                             const service = data.response[sI]; 
                     
                             const updated = context._repos.services.update(service.id, service.name, service.supportedCommunicationChannels, service.hostname, service.port, service.endpoints, service.commands, service.instances);
+                            if(updated && service.name != process.env.SERVICE_ID) {
+                                console.log('System: service updated ' + service.name + ' (' + service.instances.length + ' instances)');
+                            }
                         }
                     }
                 });
@@ -126,6 +129,8 @@ export default class System
                 context._socketServer.onMessage(({socket, message}) => {
                     const messageCategory = message.meta.category; // the category/service/resource
                     const messageType = message.meta.type; // the type of data contained
+
+                    message.meta.serverTimestamp = +new Date();
 
                     // messages coming from a service (inbound messages)
                     if(typeof message.meta.direction !== 'undefined' && message.meta.direction === 'inbound') {
