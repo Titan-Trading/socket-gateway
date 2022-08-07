@@ -14,7 +14,7 @@ services:
       dockerfile: Dockerfile
     hostname: socket-gateway-1
     container_name: socket-gateway-1
-    # restart: unless-stopped
+    restart: always
     tty: true
     env_file:
       - .one.env
@@ -22,14 +22,14 @@ services:
       - app:/var/www/html
     command:
       - yarn
-      - start-dev
+      - start
   socket-gateway-2:
     build:
       context: ./
       dockerfile: Dockerfile
     hostname: socket-gateway-2
     container_name: socket-gateway-2
-    # restart: unless-stopped
+    restart: always
     tty: true
     env_file:
       - .two.env
@@ -37,9 +37,10 @@ services:
       - app:/var/www/html
     command:
       - yarn
-      - start-dev
+      - start
   socket-gateway-proxy:
     image: nginx:alpine
+    hostname: socket-gateway-proxy
     container_name: socket-gateway-proxy
     restart: unless-stopped
     depends_on:
@@ -66,6 +67,7 @@ services:
 volumes:
   # certbot-etc:
   # certbot-var:
+  webroot:
   app:
     driver: local
     driver_opts:
