@@ -100,7 +100,7 @@ export default class System
                         serviceId:  process.env.SERVICE_ID,
                         supportedCommunicationChannels: ['bus', 'socket'],
                         hostname: 'socket-gateway-proxy',
-                        port: 8080,
+                        port: 8001,
                         endpoints: [],
                         commands: []
                     });
