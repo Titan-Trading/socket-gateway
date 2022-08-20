@@ -98,7 +98,7 @@ export default class System
                     context._messageBus.sendEvent('service-registry', 'SERVICE_ONLINE', {
                         instanceId: process.env.INSTANCE_ID,
                         serviceId:  process.env.SERVICE_ID,
-                        supportedCommunicationChannels: ['bus', 'socket'],
+                        supportedCommunicationChannels: ['rest', 'bus', 'socket'],
                         hostname: 'socket-gateway-proxy',
                         port: 8001,
                         endpoints: [],

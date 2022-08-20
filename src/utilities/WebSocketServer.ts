@@ -51,7 +51,7 @@ export default class WebSocketServer
         // create new instance of a Web Socket server
         this.server = new Server(this.httpServer, {
             cors: {
-                origin: ['https://simpletrader.local', 'http://localhost:3000'],
+                origin: ['https://tradingsystemstest.com', 'https://simpletrader.local', 'http://localhost:3000'],
                 methods: ['GET', 'POST'],
                 allowedHeaders: '*',
                 exposedHeaders: ['Content-Type', 'Origin']
