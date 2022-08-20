@@ -14,7 +14,7 @@ export default class HttpServer
         this._server = http.createServer(this._app);
 
         this._app.use(cors({
-            origin: ['https://simpletrader.local', 'localhost:3000'],
+            origin: ['https://tradingsystemstest.com', 'https://simpletrader.local', 'localhost:3000'],
             methods: ['GET','POST'],
             allowedHeaders: '*',
             exposedHeaders: ['Content-Type', 'Origin']
