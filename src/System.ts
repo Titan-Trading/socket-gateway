@@ -63,16 +63,16 @@ export default class System
                 context._messageBus.onMessage('service-registry', async (data) => {
                     // service came online
                     if(data.messageType == 'EVENT' && data.eventId == 'SERVICE_ONLINE') {
-                        // console.log('System: service online ' + data.serviceId + ' (' + data.instanceId + ')');
-                        context._log.info(`System: service online ${data.serviceId} (instance ${data.instanceId})`);
+                        console.log('System: service online ' + data.serviceId + ' (' + data.instanceId + ')');
+                        // context._log.info(`System: service online ${data.serviceId} (instance ${data.instanceId})`);
 
                         // update route mapping repository
                         const updated = context._repos.services.update(data.serviceId, data.serviceId, data.supportedCommunicationChannels, data.hostname, data.port, data.endpoints, data.commands, data.instances);
                     }
                     // service went offline
                     else if(data.messageType == 'EVENT' && data.eventId == 'SERVICE_OFFLINE') {
-                        // console.log('System: service offline ' + data.serviceId + ' (' + data.instanceId + ')');
-                        context._log.info(`System: service offline ${data.serviceId} (instance ${data.instanceId})`);
+                        console.log('System: service offline ' + data.serviceId + ' (' + data.instanceId + ')');
+                        // context._log.info(`System: service offline ${data.serviceId} (instance ${data.instanceId})`);
 
                         // update route mapping repository
                         const removed = context._repos.services.remove(data.serviceId);
@@ -130,14 +130,14 @@ export default class System
                         return;
                     }
 
-                    // console.log('System: user ' + user.name + ' is connected');
-                    context._log.info(`System: socket (user ${user.name}) is connected`);
+                    console.log('System: user ' + user.name + ' is connected');
+                    // context._log.info(`System: socket (user ${user.name}) is connected`);
                 });
 
                 // when client connects to the web socket server
                 context._socketServer.onError(({socket, error}) => {
-                    // console.log('System: error ', error);
-                    context._log.info(`System: socket error: ${JSON.stringify(error)}`);
+                    console.log('System: error ', error);
+                    // context._log.info(`System: socket error: ${JSON.stringify(error)}`);
                 });
 
                 // when client connects to the web socket server
@@ -145,9 +145,9 @@ export default class System
                     if(!user || typeof user.name == 'undefined') {
                         return;
                     }
-                    
-                    // console.log('System: user ' + user.name + ' is disconnected');
-                    context._log.info(`System: socket (user ${user.name}) is disconnected`);
+
+                    console.log('System: user ' + user.name + ' is disconnected');
+                    // context._log.info(`System: socket (user ${user.name}) is disconnected`);
                 });
 
 
@@ -165,7 +165,7 @@ export default class System
                         // check for a mapping in mapping repository
                         const service = context._repos.services.getByMessage(messageCategory, messageType);
                         if(!service) {
-                            context._log.info(`System: request to service that's not found (category ${messageCategory} type ${messageType})`);
+                            // context._log.info(`System: request to service that's not found (category ${messageCategory} type ${messageType})`);
 
                             // send response back to the client (service not found or command not supported)
                             return socket.emit('message', {
@@ -175,8 +175,8 @@ export default class System
                             });
                         }
 
-                        // console.log('System: service found ' + service.name);
-                        context._log.info(`System: service found ${service.name}`);
+                        console.log('System: service found ' + service.name);
+                        // context._log.info(`System: service found ${service.name}`);
 
                         // string to identify a route
                         const routeId = messageCategory + '-' + messageType;
@@ -230,8 +230,8 @@ export default class System
 
                         switch(messageType) {
                             case 'BUILD_COMPLETED':
-                                // console.log('build completed', message);
-                                context._log.info(`System: strategy build complete ${JSON.stringify(message)}`);
+                                console.log('build completed', message);
+                                // context._log.info(`System: strategy build complete ${JSON.stringify(message)}`);
                                 context._socketServer.server.to('STRATEGY_BUILDER:BUILD_COMPLETED:' + message.data.strategy.id).emit('message', message);
                                 break;
 
@@ -243,20 +243,20 @@ export default class System
                     else if(messageCategory === 'BACKTEST_SESSION') {
                         switch(messageType) {
                             case 'START_SESSION':
-                                // console.log('session started', message);
-                                context._log.info(`System: session started ${JSON.stringify(message)}`);
+                                console.log('session started', message);
+                                // context._log.info(`System: session started ${JSON.stringify(message)}`);
                                 context._socketServer.server.to('BACKTEST_SESSION:START_SESSION:' + message.meta.session._strategyId + ',' + message.meta.session._id).emit('message', message);
                                 break;
 
                             case 'UPDATE_SESSION':
-                                // console.log('session updated', message);
-                                context._log.info(`System: session update ${JSON.stringify(message)}`);
+                                console.log('session updated', message);
+                                // context._log.info(`System: session update ${JSON.stringify(message)}`);
                                 context._socketServer.server.to('BACKTEST_SESSION:UPDATE_SESSION:' + message.meta.session._strategyId + ',' + message.meta.session._id).emit('message', message);
                                 break;
 
                             case 'SESSION_COMPLETED':
-                                // console.log('session completed', message);
-                                context._log.info(`System: session complete ${JSON.stringify(message)}`);
+                                console.log('session completed', message);
+                                // context._log.info(`System: session complete ${JSON.stringify(message)}`);
                                 context._socketServer.server.to('BACKTEST_SESSION:SESSION_COMPLETED:' + message.meta.session._strategyId + ',' + message.meta.session._id).emit('message', message);
                                 break;
 
@@ -270,8 +270,8 @@ export default class System
 
                         switch(messageType) {
                             case 'BUILD_COMPLETED':
-                                // console.log('build completed', message);
-                                context._log.info(`System: indicator build complete ${JSON.stringify(message)}`);
+                                console.log('build completed', message);
+                                // context._log.info(`System: indicator build complete ${JSON.stringify(message)}`);
                                 context._socketServer.server.to('INDICATOR_BUILDER:BUILD_COMPLETED:' + message.data.indicator.id).emit('message', message);
                                 break;
 
@@ -291,8 +291,8 @@ export default class System
                 resolve(true);
             }
             catch(err) {
-                // console.log('System error: ', err);
-                context._log.info(`System: error ${JSON.stringify(err)}`);
+                console.log('System error: ', err);
+                // context._log.info(`System: error ${JSON.stringify(err)}`);
 
                 resolve(false);
             }
@@ -305,34 +305,34 @@ export default class System
 
         try {
             // let the service registry know that a micro-service is offline
-            // console.log('System: updating service registry (SERVICE_OFFLINE)...');
-            context._log.info(`System: updating service registry (SERVICE_OFFLINE)...`);
+            console.log('System: updating service registry (SERVICE_OFFLINE)...');
+            // context._log.info(`System: updating service registry (SERVICE_OFFLINE)...`);
             await context._messageBus.sendEvent('service-registry', 'SERVICE_OFFLINE', {
                 instanceId: process.env.INSTANCE_ID,
                 serviceId:  process.env.SERVICE_ID
             });
-            // console.log('System: service registry updated');
-            context._log.info(`System: service registry updated`);
+            console.log('System: service registry updated');
+            // context._log.info(`System: service registry updated`);
 
-            // console.log('System: stopping socket server...');
-            context._log.info(`System: stopping socket server...`);
+            console.log('System: stopping socket server...');
+            // context._log.info(`System: stopping socket server...`);
             context._socketServer.stop();
-            // console.log('System: socket server stopped');
-            context._log.info(`System: socket server stopped`);
+            console.log('System: socket server stopped');
+            // context._log.info(`System: socket server stopped`);
 
-            // console.log('System: stopping http server...');
-            context._log.info(`System: stopping http server...`);
+            console.log('System: stopping http server...');
+            // context._log.info(`System: stopping http server...`);
             context._httpServer.stop();
-            // console.log('System: http server stopped');
-            context._log.info(`System: http server stopped`);
+            console.log('System: http server stopped');
+            // context._log.info(`System: http server stopped`);
 
             console.log('System: disconnecting from message bus...');
             await context._messageBus.disconnect();
             console.log('System: disconnected from message bus');
         }
         catch(err) {
-            // console.log('System error: ', err);
-            context._log.info(`System error: ${JSON.stringify(err)}`);
+            console.log('System error: ', err);
+            // context._log.info(`System error: ${JSON.stringify(err)}`);
             return;
         }
     }
