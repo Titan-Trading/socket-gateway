@@ -1,5 +1,6 @@
 import {Server} from 'socket.io';
-import {Server as ServerEngine} from 'eiows';
+import {Server as ServerEngineDev} from 'ws';
+// import {Server as ServerEngine} from 'eiows';
 import JsonParser from 'socket.io-json-parser';
 import {createAdapter} from "@socket.io/redis-adapter";
 import {createClient} from "redis";
@@ -8,6 +9,9 @@ import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import PubSub from './PubSub';
 import UserRepository from '../repositories/UserRepository';
+import e from 'cors';
+import RestAPI from './RestAPI';
+
 
 /**
  * Web Socket server (socket.io)
@@ -21,6 +25,7 @@ export default class WebSocketServer
 {
     private _eventBus: PubSub;
     private _users: UserRepository;
+    private _restAPI: RestAPI;
     httpServer: http.Server;
     server: Server;
 
@@ -29,13 +34,15 @@ export default class WebSocketServer
      * 
      * @param config Server configuration
      */
-    constructor(config: {httpServer: any})
+    constructor(config: {httpServer: any}, restAPI: RestAPI)
     {
         this._eventBus = new PubSub();
 
         this._users = new UserRepository();
 
         this.httpServer = config.httpServer;
+
+        this._restAPI = restAPI;
     }
 
     /**
@@ -56,7 +63,8 @@ export default class WebSocketServer
                 allowedHeaders: '*',
                 exposedHeaders: ['Content-Type', 'Origin']
             },
-            wsEngine: ServerEngine,
+            // wsEngine: ServerEngine,
+            wsEngine: ServerEngineDev,
             parser: JsonParser,
             perMessageDeflate: {
                 threshold: 32768
@@ -91,7 +99,7 @@ export default class WebSocketServer
                 });
 
                 // socket is not linked to a user yet
-                if(!context._users.getByUserId(decoded.metadata.user_id)) {
+                if(!context._users.getBySocketId(socket.id)) {
                     const userMetadata = decoded.metadata;
                     // check the rest api to see if the token is valid and if the user exists
                     context._users.update(socket.id, userMetadata.user_id, userMetadata.name, userMetadata.email);
@@ -127,10 +135,111 @@ export default class WebSocketServer
             });
 
             // when a socket requests to join a room
-            socket.on('join_channel', function(room) {
-                console.log('System: client joined room ' + room);
-                socket.join(room);
-                socket.emit('channel_joined', 'Joined channel: ' + room);
+            socket.on('join_channel', async (room) => {
+                const user = context._users.getBySocketId(socket.id);
+
+                const roomParts = room.split(':');
+
+                // public channels accessible to everyone
+                if(!roomParts.length || roomParts.length !== 3 || roomParts[0] == 'EXCHANGE_DATA') {
+                    console.log('System: client joined room ' + room);
+                    socket.join(room);
+                    socket.emit('channel_joined', 'Joined channel: ' + room);
+                    return;
+                }
+
+                // private channels
+                // check if user can join the room
+                switch(roomParts[0]) {
+                    case 'EXCHANGE_ACCOUNT_DATA':
+                        // is the exchange account connected to the current user
+                        let exchangeAccountRes = await context._restAPI.getExchangeAccount(roomParts[2]);
+                        if(exchangeAccountRes.user_id === user.userId) {
+                            console.log('System: client joined room ' + room);
+                            socket.join(room);
+                            socket.emit('channel_joined', 'Joined channel: ' + room);
+                        }
+
+                        break;
+                    case 'STRATEGY_BUILDER':
+                        // is the strategy owned by the current user
+                        let botRes = await context._restAPI.getBot(roomParts[2]);
+                        if(botRes.user_id === user.userId) {
+                            if(roomParts[1] == '*') {
+                                const rooms = [
+                                    'STRATEGY_BUILDER:ERROR:' + roomParts[2],
+                                    'STRATEGY_BUILDER:BUILD_COMPLETED:' + roomParts[2]
+                                ];
+                                for(let iR in rooms) {
+                                    const r = rooms[iR];
+                                    console.log('System: client joined room ' + r);
+                                    socket.join(r);
+                                    socket.emit('channel_joined', 'Joined channel: ' + r);
+                                }
+                            }
+                            else {
+                                console.log('System: client joined room ' + room);
+                                socket.join(room);
+                                socket.emit('channel_joined', 'Joined channel: ' + room);
+                            }
+                        }
+                        break;
+                    case 'BACKTEST_SESSION':
+                        // is the backtest session owned by the current user
+                        const idParts = roomParts[2].split(',');
+                        let botSessionRes = await context._restAPI.getBotSession(idParts[0], idParts[1]);
+                        if(botSessionRes.user_id === user.userId) {
+                            if(roomParts[1] == '*') {
+                                const rooms = [
+                                    'BACKTEST_SESSION:ERROR:' + roomParts[2],
+                                    'BACKTEST_SESSION:START_SESSION:' + roomParts[2],
+                                    'BACKTEST_SESSION:UPDATE_SESSION:' + roomParts[2],
+                                    'BACKTEST_SESSION:SESSION_COMPLETED:' + roomParts[2]
+                                ];
+                                for(let iR in rooms) {
+                                    const r = rooms[iR];
+                                    console.log('System: client joined room ' + r);
+                                    socket.join(r);
+                                    socket.emit('channel_joined', 'Joined channel: ' + r);
+                                }
+                            }
+                            else {
+                                console.log('System: client joined room ' + room);
+                                socket.join(room);
+                                socket.emit('channel_joined', 'Joined channel: ' + room);
+                            }
+                        }
+                        break;
+                    case 'INDICATOR_BUILDER':
+                        // is the indicator owned by the current user
+                        let indicatorRes = await context._restAPI.getIndicator(roomParts[2]);
+                        if(indicatorRes.user_id === user.userId) {
+                            if(roomParts[1] == '*') {
+                                const rooms = [
+                                    'INDICATOR_BUILDER:ERROR:' + roomParts[2],
+                                    'INDICATOR_BUILDER:BUILD_COMPLETED:' + roomParts[2]
+                                ];
+                                for(let iR in rooms) {
+                                    const r = rooms[iR];
+                                    console.log('System: client joined room ' + r);
+                                    socket.join(r);
+                                    socket.emit('channel_joined', 'Joined channel: ' + r);
+                                }
+                            }
+                            else {
+                                console.log('System: client joined room ' + room);
+                                socket.join(room);
+                                socket.emit('channel_joined', 'Joined channel: ' + room);
+                            }
+                        }
+                        break;
+                    case 'INDICATOR_TEST':
+                        // is the indicator test owned by the current user
+                        break;
+                    case 'LIVE_TRADE_SESSION':
+                        // is the live trading session owned by the current user
+                        break;
+                }
             });
 
             // when there is an error on a socket connection
@@ -143,11 +252,13 @@ export default class WebSocketServer
 
             // when a socket connection is closed
             socket.on('disconnect', () => {
+                socket.disconnect(true);
+                
                 // get user once authenticated
                 const user = context._users.getBySocketId(socket.id);
                 if(!user) {
                     console.log('User not found');
-                    socket.disconnect(true);
+                    return;
                 }
 
                 context._eventBus.emit('onDisconnect', {socket, user});
