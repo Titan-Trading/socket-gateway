@@ -45,10 +45,6 @@ export default class UserRepository
 
     update(socketId, userId, name, email)
     {
-        if(typeof this.users[socketId] === 'undefined') {
-            this.users[socketId] = {};
-        }
-
         this.users[socketId] = {
             userId,
             socketId,
