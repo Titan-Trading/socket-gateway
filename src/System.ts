@@ -88,8 +88,8 @@ export default class System
                     
                             const updated = context._repos.services.update(service.id, service.name, service.supportedCommunicationChannels, service.hostname, service.port, service.endpoints, service.commands, service.instances);
                             if(updated && service.name != process.env.SERVICE_ID) {
-                                // console.log('System: service updated ' + service.name + ' (' + service.instances.length + ' instances)');
-                                context._log.info(`System: service online ${service.name} (${service.instances.length} instances)`);
+                                console.log('System: service updated ' + service.name + ' (' + service.instances.length + ' instances)');
+                                // context._log.info(`System: service online ${service.name} (${service.instances.length} instances)`);
                             }
                         }
                     }
@@ -214,7 +214,7 @@ export default class System
 
                         // console.log(messageCategory, messageType, message.data.symbol);
 
-                        // console.log('EXCHANGE_DATA:' + messageType + ':' + message.data.symbol);
+                        console.log('EXCHANGE_DATA:' + messageType + ':' + message.data.symbol);
 
                         context._socketServer.server.to('EXCHANGE_DATA:' + messageType + ':' + message.data.symbol).emit('message', message);
                     }
