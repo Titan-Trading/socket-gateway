@@ -142,6 +142,10 @@ export default class System
 
                 // when client connects to the web socket server
                 context._socketServer.onDisconnect(({socket, user}) => {
+                    if(!user || typeof user.name == 'undefined') {
+                        return;
+                    }
+                    
                     // console.log('System: user ' + user.name + ' is disconnected');
                     context._log.info(`System: socket (user ${user.name}) is disconnected`);
                 });
