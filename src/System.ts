@@ -214,7 +214,7 @@ export default class System
 
                         // console.log(messageCategory, messageType, message.data.symbol);
 
-                        console.log('EXCHANGE_DATA:' + messageType + ':' + message.data.symbol);
+                        // console.log('EXCHANGE_DATA:' + messageType + ':' + message.data.symbol);
 
                         context._socketServer.server.to('EXCHANGE_DATA:' + messageType + ':' + message.data.symbol).emit('message', message);
                     }
@@ -226,7 +226,7 @@ export default class System
                         context._socketServer.server.to('EXCHANGE_ACCOUNT_DATA:' + messageType + ':' + message.data.accountId).emit('message', message);
                     }
                     else if(messageCategory === 'STRATEGY_BUILDER') {
-                        console.log(message);
+                        // console.log(message);
 
                         switch(messageType) {
                             case 'BUILD_COMPLETED':
