@@ -14,10 +14,20 @@ export default class HttpServer
         this._server = http.createServer(this._app);
 
         this._app.use(cors({
-            origin: ['https://tradingsystemstest.com', 'https://simpletrader.local', 'localhost:3000'],
-            methods: ['GET','POST'],
+            origin: [
+                // production
+                'https://www.tradingsystemstest.com',
+                'https://tradingsystemstest.com',
+
+                // local docker
+                'https://www.tradingsystemstest.local',
+
+                // local webpack dev server
+                'http://localhost:3000'
+            ],
+            methods: ['GET', 'PUT', 'PATCH', 'POST', 'DELETE', 'HEAD', 'OPTIONS'],
             allowedHeaders: '*',
-            exposedHeaders: ['Content-Type', 'Origin']
+            exposedHeaders: ['Content-Type', 'Content-Length', 'Content-Range', 'X-Auth-Token', 'Origin']
         }));
 
         this._app.use(bodyParser.json());
