@@ -245,23 +245,35 @@ export default class System
                             case 'START_SESSION':
                                 console.log('session started', message);
                                 // context._log.info(`System: session started ${JSON.stringify(message)}`);
-                                context._socketServer.server.to('BACKTEST_SESSION:START_SESSION:' + message.meta.session._strategyId + ',' + message.meta.session._id).emit('message', message);
+                                context._socketServer.server.to('BACKTEST_SESSION:START_SESSION:' + message.meta.strategyId + ',' + message.meta.sessionId).emit('message', message);
                                 break;
 
                             case 'UPDATE_SESSION':
                                 console.log('session updated', message);
                                 // context._log.info(`System: session update ${JSON.stringify(message)}`);
-                                context._socketServer.server.to('BACKTEST_SESSION:UPDATE_SESSION:' + message.meta.session._strategyId + ',' + message.meta.session._id).emit('message', message);
+                                context._socketServer.server.to('BACKTEST_SESSION:UPDATE_SESSION:' + message.meta.strategyId + ',' + message.meta.sessionId).emit('message', message);
+                                break;
+
+                            case 'SESSION_STOPPED':
+                                console.log('session stopped', message);
+                                // context._log.info(`System: session update ${JSON.stringify(message)}`);
+                                context._socketServer.server.to('BACKTEST_SESSION:SESSION_STOPPED:' + message.meta.strategyId + ',' + message.meta.sessionId).emit('message', message);
+                                break;
+
+                            case 'SESSION_PAUSED':
+                                console.log('session paused', message);
+                                // context._log.info(`System: session update ${JSON.stringify(message)}`);
+                                context._socketServer.server.to('BACKTEST_SESSION:SESSION_PAUSED:' + message.meta.strategyId + ',' + message.meta.sessionId).emit('message', message);
                                 break;
 
                             case 'SESSION_COMPLETED':
                                 console.log('session completed', message);
                                 // context._log.info(`System: session complete ${JSON.stringify(message)}`);
-                                context._socketServer.server.to('BACKTEST_SESSION:SESSION_COMPLETED:' + message.meta.session._strategyId + ',' + message.meta.session._id).emit('message', message);
+                                context._socketServer.server.to('BACKTEST_SESSION:SESSION_COMPLETED:' + message.meta.strategyId + ',' + message.meta.sessionId).emit('message', message);
                                 break;
 
                             case 'ERROR':
-                                context._socketServer.server.to('BACKTEST_SESSION:ERROR:' + message.meta.session._strategyId + ',' + message.meta.session.id).emit('message', message);
+                                context._socketServer.server.to('BACKTEST_SESSION:ERROR:' + message.meta.strategyId + ',' + message.meta.sessionId).emit('message', message);
                                 break;
                         }
                     }

@@ -1,6 +1,6 @@
 import {Server} from 'socket.io';
-import {Server as ServerEngineDev} from 'ws';
-// import {Server as ServerEngine} from 'eiows';
+// import {Server as ServerEngineDev} from 'ws';
+import {Server as ServerEngine} from 'eiows';
 import JsonParser from 'socket.io-json-parser';
 import {createAdapter} from "@socket.io/redis-adapter";
 import {createClient} from "redis";
@@ -9,7 +9,6 @@ import fs from 'fs';
 import jwt from 'jsonwebtoken';
 import PubSub from './PubSub';
 import UserRepository from '../repositories/UserRepository';
-import e from 'cors';
 import RestAPI from './RestAPI';
 
 
@@ -63,12 +62,13 @@ export default class WebSocketServer
                 allowedHeaders: '*',
                 exposedHeaders: ['Content-Type', 'Origin']
             },
-            // wsEngine: ServerEngine,
-            wsEngine: ServerEngineDev,
+            wsEngine: ServerEngine,
+            // wsEngine: ServerEngineDev,
             parser: JsonParser,
             perMessageDeflate: {
                 threshold: 32768
-            }
+            },
+            maxHttpBufferSize: 1e8
         });
 
         const pubClient = createClient({ 
@@ -194,6 +194,8 @@ export default class WebSocketServer
                                     'BACKTEST_SESSION:ERROR:' + roomParts[2],
                                     'BACKTEST_SESSION:START_SESSION:' + roomParts[2],
                                     'BACKTEST_SESSION:UPDATE_SESSION:' + roomParts[2],
+                                    'BACKTEST_SESSION:SESSION_STOPPED:' + roomParts[2],
+                                    'BACKTEST_SESSION:SESSION_RESUMED:' + roomParts[2],
                                     'BACKTEST_SESSION:SESSION_COMPLETED:' + roomParts[2]
                                 ];
                                 for(let iR in rooms) {
@@ -230,6 +232,117 @@ export default class WebSocketServer
                                 console.log('System: client joined room ' + room);
                                 socket.join(room);
                                 socket.emit('channel_joined', 'Joined channel: ' + room);
+                            }
+                        }
+                        break;
+                    case 'INDICATOR_TEST':
+                        // is the indicator test owned by the current user
+                        break;
+                    case 'LIVE_TRADE_SESSION':
+                        // is the live trading session owned by the current user
+                        break;
+                }
+            });
+
+            // private channels
+            // check if user can leave the room
+            socket.on('leave_channel', async (room) => {
+                const user = context._users.getBySocketId(socket.id);
+
+                const roomParts = room.split(':');
+
+                // public channels accessible to everyone
+                if(!roomParts.length || roomParts.length !== 3 || roomParts[0] == 'EXCHANGE_DATA') {
+                    console.log('System: client left room ' + room);
+                    socket.leave(room);
+                    socket.emit('channel_left', 'Left channel: ' + room);
+                    return;
+                }
+
+                // private channels
+                // check if user can join the room
+                switch(roomParts[0]) {
+                    case 'EXCHANGE_ACCOUNT_DATA':
+                        // is the exchange account connected to the current user
+                        let exchangeAccountRes = await context._restAPI.getExchangeAccount(roomParts[2]);
+                        if(exchangeAccountRes.user_id === user.userId) {
+                            console.log('System: client left room ' + room);
+                            socket.leave(room);
+                            socket.emit('channel_left', 'Left channel: ' + room);
+                        }
+
+                        break;
+                    case 'STRATEGY_BUILDER':
+                        // is the strategy owned by the current user
+                        let botRes = await context._restAPI.getBot(roomParts[2]);
+                        if(botRes.user_id === user.userId) {
+                            if(roomParts[1] == '*') {
+                                const rooms = [
+                                    'STRATEGY_BUILDER:ERROR:' + roomParts[2],
+                                    'STRATEGY_BUILDER:BUILD_COMPLETED:' + roomParts[2]
+                                ];
+                                for(let iR in rooms) {
+                                    const r = rooms[iR];
+                                    console.log('System: client left room ' + r);
+                                    socket.leave(r);
+                                    socket.emit('channel_left', 'Left channel: ' + r);
+                                }
+                            }
+                            else {
+                                console.log('System: client left room ' + room);
+                                socket.leave(room);
+                                socket.emit('channel_left', 'Left channel: ' + room);
+                            }
+                        }
+                        break;
+                    case 'BACKTEST_SESSION':
+                        // is the backtest session owned by the current user
+                        const idParts = roomParts[2].split(',');
+                        let botSessionRes = await context._restAPI.getBotSession(idParts[0], idParts[1]);
+                        if(botSessionRes.user_id === user.userId) {
+                            if(roomParts[1] == '*') {
+                                const rooms = [
+                                    'BACKTEST_SESSION:ERROR:' + roomParts[2],
+                                    'BACKTEST_SESSION:START_SESSION:' + roomParts[2],
+                                    'BACKTEST_SESSION:UPDATE_SESSION:' + roomParts[2],
+                                    'BACKTEST_SESSION:SESSION_STOPPED:' + roomParts[2],
+                                    'BACKTEST_SESSION:SESSION_RESUMED:' + roomParts[2],
+                                    'BACKTEST_SESSION:SESSION_COMPLETED:' + roomParts[2]
+                                ];
+                                for(let iR in rooms) {
+                                    const r = rooms[iR];
+                                    console.log('System: client left room ' + r);
+                                    socket.leave(r);
+                                    socket.emit('channel_left', 'Left channel: ' + r);
+                                }
+                            }
+                            else {
+                                console.log('System: client left room ' + room);
+                                socket.leave(room);
+                                socket.emit('channel_left', 'Left channel: ' + room);
+                            }
+                        }
+                        break;
+                    case 'INDICATOR_BUILDER':
+                        // is the indicator owned by the current user
+                        let indicatorRes = await context._restAPI.getIndicator(roomParts[2]);
+                        if(indicatorRes.user_id === user.userId) {
+                            if(roomParts[1] == '*') {
+                                const rooms = [
+                                    'INDICATOR_BUILDER:ERROR:' + roomParts[2],
+                                    'INDICATOR_BUILDER:BUILD_COMPLETED:' + roomParts[2]
+                                ];
+                                for(let iR in rooms) {
+                                    const r = rooms[iR];
+                                    console.log('System: client left room ' + r);
+                                    socket.leave(r);
+                                    socket.emit('channel_left', 'Left channel: ' + r);
+                                }
+                            }
+                            else {
+                                console.log('System: client left room ' + room);
+                                socket.leave(room);
+                                socket.emit('channel_left', 'Left channel: ' + room);
                             }
                         }
                         break;
